@@ -802,7 +802,7 @@
           <div class="processing-spinner" id="loader"></div>
 
           <!-- Mode 1: Split Slider -->
-          <div class="view-frame active" id="frame-split">
+          <div class="view-frame" id="frame-split">
             <div class="split-container" id="split-box">
               <img id="img-split-base" src="" alt="Overlay">
               <div class="split-top-layer" id="split-top">
@@ -862,12 +862,12 @@
 
           <div class="severity-display">
             <div class="grade-badge-circle" id="grade-circle">
-              <span class="grade-number" id="val-grade">--</span>
+              <span class="grade-number" id="val-grade">&mdash;</span>
               <span class="grade-denom">/ 10</span>
             </div>
             <div class="severity-metadata">
               <h3 id="grade-desc">Awaiting Analysis</h3>
-              <div class="severity-classification" id="grade-status">No Specimen</div>
+              <div class="severity-classification" id="grade-status">Standby</div>
             </div>
           </div>
 
@@ -875,19 +875,19 @@
           <div class="metrics-matrix">
             <div class="metric-cell">
               <div class="metric-caption">Corrosion Area</div>
-              <div class="metric-data highlight" id="metric-area">0.00 %</div>
+              <div class="metric-data highlight" id="metric-area">&mdash; %</div>
             </div>
             <div class="metric-cell">
               <div class="metric-caption">Disjoint Defects</div>
-              <div class="metric-data" id="metric-regions">0</div>
+              <div class="metric-data" id="metric-regions">&mdash;</div>
             </div>
             <div class="metric-cell">
               <div class="metric-caption">Dominant Cluster</div>
-              <div class="metric-data" id="metric-cluster">0 %</div>
+              <div class="metric-data" id="metric-cluster">&mdash; %</div>
             </div>
             <div class="metric-cell">
               <div class="metric-caption">CV Execution</div>
-              <div class="metric-data" id="metric-latency" style="color:var(--text-secondary)">0.0 ms</div>
+              <div class="metric-data" id="metric-latency" style="color:var(--text-secondary)">&mdash; ms</div>
             </div>
           </div>
 
@@ -1036,6 +1036,11 @@
 
     function renderAnalysis(data, rttMs) {
       const a = data.assessment;
+
+      document.getElementById('drop-cta').style.display = 'none';
+      document.querySelectorAll('.view-frame').forEach(f => f.classList.remove('active'));
+      const activeFrame = document.getElementById(`frame-${activeMode}`);
+      if (activeFrame) activeFrame.classList.add('active');
 
       // Update image sources
       document.getElementById('img-split-base').src = data.images.overlay;

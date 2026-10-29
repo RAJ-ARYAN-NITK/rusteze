@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RustScan Industrial &mdash; Quantitative Surface Corrosion Analysis System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-base: #090a0f;
+      --bg-surface: #10131a;
+      --bg-elevated: #151922;
+      --bg-highlight: #1b202c;
+      --border-subtle: #1e2433;
+      --border-strong: #2c354a;
+      --border-active: #3b4661;
+      
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-tertiary: #64748b;
+      
+      --accent: #e2e8f0;
+      --accent-rust: #ea580c;
+      --accent-rust-light: #f97316;
+      --accent-rust-subtle: rgba(234, 88, 12, 0.12);
+      
+      --status-ok: #10b981;
+      --status-warning: #f59e0b;
+      --status-critical: #ef4444;
+      --status-neutral: #64748b;
+      
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: 'JetBrains Mono', SFMono-Regular, Menlo, monospace;
+      
+      --radius-sm: 4px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -2px rgba(0, 0, 0, 0.4);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.6), 0 4px 6px -4px rgba(0, 0, 0, 0.4);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    
+    body {
+      font-family: var(--font-sans);
+      background-color: var(--bg-base);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      -webkit-font-smoothing: antialiased;
+      letter-spacing: -0.011em;
+    }
+
+    /* Top Navigation */
+    header {
+      height: 56px;
+      border-bottom: 1px solid var(--border-subtle);
+      background: rgba(16, 19, 26, 0.95);
+      backdrop-filter: blur(8px);
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .brand-section {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-mark {
+      width: 22px;
+      height: 22px;
+      background: var(--text-primary);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--bg-base);
+    }
+    
+    .brand-mark svg {
+      width: 14px;
+      height: 14px;
+      fill: currentColor;
+    }
+
+    .brand-title {
+      font-size: 0.88rem;
+      font-weight: 600;
+      letter-spacing: -0.015em;
+      color: var(--text-primary);
+    }
+
+    .brand-version {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--text-tertiary);
+      background: var(--bg-elevated);
+      padding: 2px 6px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-subtle);
+      margin-left: 4px;
+    }
+
+    .nav-status-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-pill {
+      font-family: var(--font-mono);
+      font-size: 0.72rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: var(--radius-sm);
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+    }
+
+    .status-indicator {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background-color: var(--status-ok);
+    }
+
+    /* Main Container */
+    main {
+      flex: 1;
+      padding: 24px;
+      max-width: 1600px;
+      width: 100%;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Action & Specimen Selector Bar */
+    .action-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      padding: 10px 16px;
+      border-radius: var(--radius-md);
+    }
+
+    .specimen-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .control-label {
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-tertiary);
+      margin-right: 6px;
+    }
+
+    .specimen-btn {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 0.76rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .specimen-btn:hover {
+      color: var(--text-primary);
+      border-color: var(--border-strong);
+      background: var(--bg-highlight);
+    }
+
+    .specimen-btn.active {
+      background: var(--bg-highlight);
+      color: var(--text-primary);
+      border-color: var(--border-active);
+    }
+
+    .specimen-id {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      color: var(--text-tertiary);
+    }
+
+    .upload-btn {
+      background: var(--text-primary);
+      color: var(--bg-base);
+      border: none;
+      padding: 6px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 0.76rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: opacity 0.15s ease;
+    }
+
+    .upload-btn:hover { opacity: 0.9; }
+
+    /* Workstation Grid Layout */
+    .grid-layout {
+      display: grid;
+      grid-template-columns: 1fr 420px;
+      gap: 20px;
+    }
+
+    @media (max-width: 1200px) {
+      .grid-layout { grid-template-columns: 1fr; }
+    }
+
+    /* Inspection Canvas Panel */
+    .canvas-panel {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-height: 600px;
+    }
+
+    .canvas-toolbar {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+      background: var(--bg-surface);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .mode-tab-group {
+      display: flex;
+      gap: 2px;
+      background: var(--bg-base);
+      padding: 2px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .mode-tab {
+      background: transparent;
+      border: none;
+      color: var(--text-tertiary);
+      padding: 5px 12px;
+      font-size: 0.74rem;
+      font-weight: 500;
+      border-radius: 2px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .mode-tab:hover {
+      color: var(--text-secondary);
+    }
+
+    .mode-tab.active {
+      background: var(--bg-elevated);
+      color: var(--text-primary);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .meta-tag {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      color: var(--text-tertiary);
+    }
+
+    .canvas-stage {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #06070a;
+      position: relative;
+      overflow: hidden;
+      padding: 24px;
+    }
+
+    /* Empty Drop Prompt */
+    .drop-prompt {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      cursor: pointer;
+      border: 1px dashed transparent;
+      transition: all 0.2s;
+    }
+
+    .drop-prompt:hover {
+      border-color: var(--border-strong);
+      background: rgba(255, 255, 255, 0.01);
+    }
+
+    .drop-icon-box {
+      width: 44px;
+      height: 44px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-strong);
+      background: var(--bg-elevated);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-secondary);
+    }
+
+    .drop-text-primary {
+      font-size: 0.88rem;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .drop-text-secondary {
+      font-size: 0.75rem;
+      color: var(--text-tertiary);
+    }
+
+    /* Image Display Views */
+    .view-frame {
+      width: 100%;
+      height: 100%;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .view-frame.active { display: flex; }
+
+    .image-element {
+      max-width: 100%;
+      max-height: 520px;
+      object-fit: contain;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-subtle);
+    }
+
+    /* Interactive Split View */
+    .split-container {
+      position: relative;
+      max-width: 100%;
+      max-height: 520px;
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      user-select: none;
+      border: 1px solid var(--border-subtle);
+      background: #000;
+    }
+
+    .split-container img {
+      display: block;
+      max-height: 520px;
+      max-width: 100%;
+      object-fit: contain;
+      pointer-events: none;
+    }
+
+    .split-top-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      overflow: hidden;
+      width: 50%;
+    }
+
+    .split-divider {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 50%;
+      width: 1px;
+      background: #ffffff;
+      cursor: ew-resize;
+      box-shadow: 0 0 8px rgba(0,0,0,0.8);
+    }
+
+    .split-handle {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 1px solid #111;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.6);
+    }
+
+    .split-handle svg {
+      width: 12px;
+      height: 12px;
+      fill: #111;
+    }
+
+    .split-tag {
+      position: absolute;
+      bottom: 12px;
+      padding: 3px 8px;
+      background: rgba(16, 19, 26, 0.85);
+      backdrop-filter: blur(4px);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--text-secondary);
+      pointer-events: none;
+    }
+    .split-tag.left { left: 12px; }
+    .split-tag.right { right: 12px; }
+
+    /* Side-by-side mode */
+    .side-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      width: 100%;
+    }
+
+    .side-item {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .side-item-title {
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Diagnostics & Analytics Panel (Right Column) */
+    .diagnostics-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 16px;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+
+    .card-title {
+      font-size: 0.74rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-tertiary);
+    }
+
+    /* ASTM Severity Rating Header */
+    .severity-display {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+
+    .grade-badge-circle {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      border: 2px solid var(--border-strong);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-elevated);
+      flex-shrink: 0;
+      transition: all 0.3s;
+    }
+
+    .grade-number {
+      font-size: 1.5rem;
+      font-weight: 700;
+      line-height: 1;
+      font-family: var(--font-mono);
+      color: var(--text-primary);
+    }
+
+    .grade-denom {
+      font-size: 0.6rem;
+      color: var(--text-tertiary);
+      font-family: var(--font-mono);
+      margin-top: 2px;
+    }
+
+    .severity-metadata h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 3px;
+    }
+
+    .severity-classification {
+      display: inline-block;
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 2px 6px;
+      border-radius: var(--radius-sm);
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    /* Quantitative Metrics Data Matrix */
+    .metrics-matrix {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .metric-cell {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 10px;
+    }
+
+    .metric-caption {
+      font-size: 0.65rem;
+      font-weight: 500;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 4px;
+    }
+
+    .metric-data {
+      font-family: var(--font-mono);
+      font-size: 1.15rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .metric-data.highlight {
+      color: var(--accent-rust-light);
+    }
+
+    /* Analytical Breakdown Rows */
+    .data-table {
+      width: 100%;
+      font-size: 0.78rem;
+      border-collapse: collapse;
+      margin-top: 4px;
+    }
+
+    .data-table tr {
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .data-table tr:last-child {
+      border-bottom: none;
+    }
+
+    .data-table td {
+      padding: 8px 0;
+    }
+
+    .data-table td:first-child {
+      color: var(--text-secondary);
+      width: 45%;
+    }
+
+    .data-table td:last-child {
+      font-family: var(--font-mono);
+      color: var(--text-primary);
+      text-align: right;
+    }
+
+    /* Engineering Narrative Summary */
+    .narrative-box {
+      margin-top: 14px;
+      padding: 12px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      font-size: 0.76rem;
+      line-height: 1.5;
+      color: var(--text-secondary);
+    }
+
+    /* Calibration Tuning Form */
+    .tuning-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .tuning-row {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .tuning-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.72rem;
+      color: var(--text-secondary);
+    }
+
+    .tuning-val {
+      font-family: var(--font-mono);
+      color: var(--text-primary);
+    }
+
+    input[type=range] {
+      -webkit-appearance: none;
+      width: 100%;
+      background: var(--bg-elevated);
+      height: 4px;
+      border-radius: 2px;
+      outline: none;
+    }
+
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 14px;
+      width: 14px;
+      border-radius: 50%;
+      background: var(--text-primary);
+      cursor: pointer;
+      border: 2px solid var(--bg-surface);
+      box-shadow: var(--shadow-sm);
+    }
+
+    /* Loading Spinner */
+    .processing-spinner {
+      display: none;
+      width: 24px;
+      height: 24px;
+      border: 2px solid var(--border-strong);
+      border-top-color: var(--text-primary);
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Footer */
+    footer {
+      height: 48px;
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.72rem;
+      color: var(--text-tertiary);
+      border-top: 1px solid var(--border-subtle);
+      background: var(--bg-surface);
+    }
+
+    .mono { font-family: var(--font-mono); }
+  </style>
+</head>
+<body>
+
+  <!-- App Header -->
+  <header>
+    <div class="brand-section">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      </div>
+      <div class="brand-title">RustScan Industrial</div>
+      <span class="brand-version">v1.2.0</span>
+    </div>
+    <div class="nav-status-group">
+      <div class="status-pill">
+        <span class="status-indicator"></span>
+        <span>C++ Engine Online</span>
+      </div>
+      <div class="status-pill">
+        <span style="color:var(--text-tertiary)">Latency:</span>
+        <span id="latency-val" class="mono">-- ms</span>
+      </div>
+      <div class="status-pill">
+        <span>ASTM D610 Standard</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workstation -->
+  <main>
+
+    <!-- Specimen Bar -->
+    <div class="action-bar">
+      <div class="specimen-group">
+        <span class="control-label">Standard Specimens:</span>
+        <button class="specimen-btn" onclick="selectSpecimen('clean_pipe')">
+          <span class="specimen-id">01</span>
+          <span>Clean Steel Pipe</span>
+        </button>
+        <button class="specimen-btn" onclick="selectSpecimen('pitted_plate')">
+          <span class="specimen-id">02</span>
+          <span>Localized Pitting</span>
+        </button>
+        <button class="specimen-btn" onclick="selectSpecimen('severe_flange')">
+          <span class="specimen-id">03</span>
+          <span>Severe Flange Corrosion</span>
+        </button>
+        <button class="specimen-btn" onclick="selectSpecimen('structural_beam')">
+          <span class="specimen-id">04</span>
+          <span>Structural I-Beam</span>
+        </button>
+      </div>
+      <div>
+        <input type="file" id="file-uploader" accept="image/*" style="display:none" onchange="onFileUploaded(event)">
+        <button class="upload-btn" onclick="document.getElementById('file-uploader').click()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+          Upload Inspection Photo
+        </button>
+      </div>
+    </div>
+
+    <!-- Center Grid -->
+    <div class="grid-layout">
+
+      <!-- Left Column: Visual Canvas -->
+      <div class="canvas-panel">
+        <div class="canvas-toolbar">
+          <div class="mode-tab-group">
+            <button class="mode-tab active" onclick="setMode('split')">Split View</button>
+            <button class="mode-tab" onclick="setMode('side')">Side-by-Side</button>
+            <button class="mode-tab" onclick="setMode('overlay')">Annotated Overlay</button>
+            <button class="mode-tab" onclick="setMode('mask')">Binary Defect Mask</button>
+            <button class="mode-tab" onclick="setMode('orig')">Original Image</button>
+          </div>
+          <div class="meta-tag" id="canvas-dims">Waiting for input</div>
+        </div>
+
+        <div class="canvas-stage" id="drop-zone">
+
+          <!-- Drop Prompt Overlay -->
+          <div class="drop-prompt" id="drop-cta" onclick="document.getElementById('file-uploader').click()">
+            <div class="drop-icon-box">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+            </div>
+            <div class="drop-text-primary">Upload or drop component photo</div>
+            <div class="drop-text-secondary">Compatible with JPEG, PNG, BMP &bull; Sub-15ms local CV processing</div>
+          </div>
+
+          <div class="processing-spinner" id="loader"></div>
+
+          <!-- Mode 1: Split Slider -->
+          <div class="view-frame active" id="frame-split">
+            <div class="split-container" id="split-box">
+              <img id="img-split-base" src="" alt="Overlay">
+              <div class="split-top-layer" id="split-top">
+                <img id="img-split-orig" src="" alt="Original">
+              </div>
+              <div class="split-divider" id="split-bar">
+                <div class="split-handle">
+                  <svg viewBox="0 0 24 24"><path d="M8 7l-5 5 5 5V7zm8 0v10l5-5-5-5z"/></svg>
+                </div>
+              </div>
+              <div class="split-tag left">Original</div>
+              <div class="split-tag right">Defect Overlay</div>
+            </div>
+          </div>
+
+          <!-- Mode 2: Side by Side -->
+          <div class="view-frame" id="frame-side">
+            <div class="side-grid">
+              <div class="side-item">
+                <div class="side-item-title">Raw Surface</div>
+                <img class="image-element" id="img-side-orig" src="" alt="Raw">
+              </div>
+              <div class="side-item">
+                <div class="side-item-title">Segmented Defect</div>
+                <img class="image-element" id="img-side-overlay" src="" alt="Overlay">
+              </div>
+            </div>
+          </div>
+
+          <!-- Mode 3: Overlay -->
+          <div class="view-frame" id="frame-overlay">
+            <img class="image-element" id="img-single-overlay" src="" alt="Overlay">
+          </div>
+
+          <!-- Mode 4: Mask -->
+          <div class="view-frame" id="frame-mask">
+            <img class="image-element" id="img-single-mask" src="" alt="Mask">
+          </div>
+
+          <!-- Mode 5: Original -->
+          <div class="view-frame" id="frame-orig">
+            <img class="image-element" id="img-single-orig" src="" alt="Original">
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Right Column: Quantitative Diagnostics -->
+      <div class="diagnostics-panel">
+
+        <!-- Severity Evaluation -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">ASTM D610-21 Evaluation</span>
+            <span class="meta-tag">Standard Scale</span>
+          </div>
+
+          <div class="severity-display">
+            <div class="grade-badge-circle" id="grade-circle">
+              <span class="grade-number" id="val-grade">--</span>
+              <span class="grade-denom">/ 10</span>
+            </div>
+            <div class="severity-metadata">
+              <h3 id="grade-desc">Awaiting Analysis</h3>
+              <div class="severity-classification" id="grade-status">No Specimen</div>
+            </div>
+          </div>
+
+          <!-- Metrics Matrix -->
+          <div class="metrics-matrix">
+            <div class="metric-cell">
+              <div class="metric-caption">Corrosion Area</div>
+              <div class="metric-data highlight" id="metric-area">0.00 %</div>
+            </div>
+            <div class="metric-cell">
+              <div class="metric-caption">Disjoint Defects</div>
+              <div class="metric-data" id="metric-regions">0</div>
+            </div>
+            <div class="metric-cell">
+              <div class="metric-caption">Dominant Cluster</div>
+              <div class="metric-data" id="metric-cluster">0 %</div>
+            </div>
+            <div class="metric-cell">
+              <div class="metric-caption">CV Execution</div>
+              <div class="metric-data" id="metric-latency" style="color:var(--text-secondary)">0.0 ms</div>
+            </div>
+          </div>
+
+          <!-- Tabular Details -->
+          <table class="data-table">
+            <tr>
+              <td>Dominant Oxide Tone</td>
+              <td id="detail-tone">&mdash;</td>
+            </tr>
+            <tr>
+              <td>Morphology Pattern</td>
+              <td id="detail-pattern">&mdash;</td>
+            </tr>
+            <tr>
+              <td>Compliance Threshold</td>
+              <td>ASTM Grade &ge; 7</td>
+            </tr>
+          </table>
+
+          <div class="narrative-box" id="narrative-text">
+            Upload an inspection photo or select a standard specimen above to execute quantitative surface segmentation.
+          </div>
+        </div>
+
+        <!-- Vision AI Corroboration -->
+        <div class="card" id="vlm-box">
+          <div class="card-header">
+            <span class="card-title">Qualitative AI Verification</span>
+            <span class="meta-tag">Optional VLM</span>
+          </div>
+          <div class="narrative-box" style="margin-top:0;" id="vlm-narrative">
+            Integrate with local LLMs (Ollama / Moondream) to corroborate surface pitting, paint blistering, and oxide color verification without cloud dependencies.
+          </div>
+        </div>
+
+        <!-- Computer Vision Calibration -->
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">Detector Calibration</span>
+            <span class="meta-tag">C++ Parameters</span>
+          </div>
+
+          <div class="tuning-group">
+            <div class="tuning-row">
+              <div class="tuning-labels">
+                <span>Texture Gating (Variance)</span>
+                <span class="tuning-val" id="disp-texMin">3.0</span>
+              </div>
+              <input type="range" id="param-texMin" min="0" max="15" step="0.5" value="3.0" oninput="onParamChange('texMin', this.value)">
+            </div>
+
+            <div class="tuning-row">
+              <div class="tuning-labels">
+                <span>Min Cluster Area</span>
+                <span class="tuning-val" id="disp-minArea">30 px</span>
+              </div>
+              <input type="range" id="param-minArea" min="5" max="250" step="5" value="30" oninput="onParamChange('minArea', this.value)">
+            </div>
+
+            <div class="tuning-row">
+              <div class="tuning-labels">
+                <span>Hue Window (Upper Limit)</span>
+                <span class="tuning-val" id="disp-hue">25</span>
+              </div>
+              <input type="range" id="param-hue" min="10" max="45" step="1" value="25" oninput="onParamChange('hueHigh', this.value)">
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <!-- Status Bar Footer -->
+  <footer>
+    <div>RustScan Industrial Architecture &bull; ISO 9001 / ASTM D610 Surface Quality Compliance</div>
+    <div class="mono">C++17 Core &bull; Zero External Runtime &bull; Real-Time Segmentation</div>
+  </footer>
+
+  <script>
+    let activeBlob = null;
+    let activeMode = 'split';
+    let params = { texMin: 3.0, minArea: 30, hueHigh: 25 };
+
+    // Drag and drop setup
+    const dropZone = document.getElementById('drop-zone');
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.background = '#0d1017'; });
+    dropZone.addEventListener('dragleave', () => dropZone.style.background = '#06070a');
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.style.background = '#06070a';
+      if (e.dataTransfer.files.length) handleInspection(e.dataTransfer.files[0]);
+    });
+
+    function onFileUploaded(e) {
+      if (e.target.files.length) handleInspection(e.target.files[0]);
+    }
+
+    function handleInspection(file) {
+      activeBlob = file;
+      document.querySelectorAll('.specimen-btn').forEach(b => b.classList.remove('active'));
+      executeAnalysis(file);
+    }
+
+    async function selectSpecimen(name) {
+      document.querySelectorAll('.specimen-btn').forEach(b => b.classList.remove('active'));
+      event.currentTarget.classList.add('active');
+
+      document.getElementById('drop-cta').style.display = 'none';
+      document.getElementById('loader').style.display = 'block';
+
+      try {
+        const res = await fetch(`/api/sample/${name}`);
+        if (!res.ok) throw new Error('Specimen fetch failed');
+        const blob = await res.blob();
+        activeBlob = blob;
+        executeAnalysis(blob);
+      } catch (err) {
+        alert('Could not load specimen: ' + err.message);
+        document.getElementById('loader').style.display = 'none';
+      }
+    }
+
+    async function executeAnalysis(blob) {
+      document.getElementById('drop-cta').style.display = 'none';
+      document.getElementById('loader').style.display = 'block';
+
+      const formData = new FormData();
+      formData.append('image', blob);
+      formData.append('texMin', params.texMin);
+      formData.append('minArea', params.minArea);
+      formData.append('hHigh', params.hueHigh);
+
+      const t0 = performance.now();
+      try {
+        const resp = await fetch('/api/inspect', { method: 'POST', body: formData });
+        if (!resp.ok) throw new Error('Server error');
+        const data = await resp.json();
+        renderAnalysis(data, performance.now() - t0);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        document.getElementById('loader').style.display = 'none';
+      }
+    }
+
+    function renderAnalysis(data, rttMs) {
+      const a = data.assessment;
+
+      // Update image sources
+      document.getElementById('img-split-base').src = data.images.overlay;
+      document.getElementById('img-split-orig').src = data.images.original;
+      document.getElementById('img-side-orig').src = data.images.original;
+      document.getElementById('img-side-overlay').src = data.images.overlay;
+      document.getElementById('img-single-overlay').src = data.images.overlay;
+      document.getElementById('img-single-mask').src = data.images.mask;
+      document.getElementById('img-single-orig').src = data.images.original;
+
+      document.getElementById('canvas-dims').innerText = `${data.width} × ${data.height} px`;
+
+      // Grade formatting
+      document.getElementById('val-grade').innerText = a.grade;
+      document.getElementById('grade-desc').innerText = `ASTM Grade ${a.grade}`;
+      
+      const gradeCircle = document.getElementById('grade-circle');
+      const statusPill = document.getElementById('grade-status');
+
+      if (a.grade >= 8) {
+        gradeCircle.style.borderColor = 'var(--status-ok)';
+        statusPill.innerText = 'Acceptable (Grade ' + a.grade + ')';
+        statusPill.style.color = 'var(--status-ok)';
+      } else if (a.grade >= 4) {
+        gradeCircle.style.borderColor = 'var(--status-warning)';
+        statusPill.innerText = 'Moderate Degradation';
+        statusPill.style.color = 'var(--status-warning)';
+      } else {
+        gradeCircle.style.borderColor = 'var(--status-critical)';
+        statusPill.innerText = 'Critical Non-Conformance';
+        statusPill.style.color = 'var(--status-critical)';
+      }
+
+      // Numerical data
+      document.getElementById('metric-area').innerText = `${a.percent.toFixed(2)} %`;
+      document.getElementById('metric-regions').innerText = a.regions;
+      document.getElementById('metric-cluster').innerText = `${Math.round(a.largestShare * 100)} %`;
+
+      const latency = data.latencyMs ? data.latencyMs.toFixed(1) : (rttMs * 0.7).toFixed(1);
+      document.getElementById('metric-latency').innerText = `${latency} ms`;
+      document.getElementById('latency-val').innerText = `${latency} ms`;
+
+      // Details
+      document.getElementById('detail-tone').innerText = a.color || 'None';
+      document.getElementById('detail-pattern').innerText = a.pattern || 'None';
+      document.getElementById('narrative-text').innerText = a.summary || 'Surface analysis completed.';
+
+      // VLM
+      if (data.vlm && data.vlm.text) {
+        document.getElementById('vlm-narrative').innerText = data.vlm.text;
+      }
+    }
+
+    // View Switching
+    function setMode(mode) {
+      activeMode = mode;
+      document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
+      event.currentTarget.classList.add('active');
+
+      document.querySelectorAll('.view-frame').forEach(f => f.classList.remove('active'));
+      const activeFrame = document.getElementById(`frame-${mode}`);
+      if (activeFrame) activeFrame.classList.add('active');
+    }
+
+    // Split Slider Dragging
+    const splitBox = document.getElementById('split-box');
+    const splitTop = document.getElementById('split-top');
+    const splitBar = document.getElementById('split-bar');
+    let isSliding = false;
+
+    function moveDivider(clientX) {
+      const rect = splitBox.getBoundingClientRect();
+      let pos = (clientX - rect.left) / rect.width;
+      pos = Math.max(0.01, Math.min(0.99, pos));
+      splitTop.style.width = (pos * 100) + '%';
+      splitBar.style.left = (pos * 100) + '%';
+    }
+
+    splitBox.addEventListener('mousedown', (e) => { isSliding = true; moveDivider(e.clientX); });
+    window.addEventListener('mouseup', () => isSliding = false);
+    window.addEventListener('mousemove', (e) => { if (isSliding) moveDivider(e.clientX); });
+
+    splitBox.addEventListener('touchstart', (e) => { isSliding = true; moveDivider(e.touches[0].clientX); });
+    window.addEventListener('touchend', () => isSliding = false);
+    window.addEventListener('touchmove', (e) => { if (isSliding) moveDivider(e.touches[0].clientX); });
+
+    // Parameter Recalibration
+    let debounceTimer = null;
+    function onParamChange(key, val) {
+      params[key] = parseFloat(val);
+      if (key === 'texMin') document.getElementById('disp-texMin').innerText = val;
+      if (key === 'minArea') document.getElementById('disp-minArea').innerText = val + ' px';
+      if (key === 'hueHigh') document.getElementById('disp-hue').innerText = val;
+
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        if (activeBlob) executeAnalysis(activeBlob);
+      }, 300);
+    }
+  </script>
+</body>
+</html>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>RustScan Industrial &mdash; Quantitative Surface Corrosion Analysis System</title>
+  <title>Rusteze &mdash; Quantitative Surface Corrosion Analysis System</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -715,13 +715,30 @@
 </head>
 <body>
 
+  <!-- Backend Config Banner -->
+  <div id="api-banner" style="display:none; position:fixed; top:0; left:0; right:0; z-index:9999;
+       background:#1b1f2e; border-bottom:1px solid #ea580c; padding:10px 20px;
+       font-family:'Inter',sans-serif; font-size:13px; color:#f8fafc; align-items:center; gap:12px; flex-wrap:wrap;">
+    <span id="banner-status" style="color:#ea580c; font-weight:600;">⚠ No backend connected.</span>
+    <span style="color:#94a3b8;">Run <code style="color:#f97316; background:#0d1017; padding:1px 5px; border-radius:3px;">./build/rust_server</code> locally, then enter its address:</span>
+    <input id="api-base-input" type="text" placeholder="http://localhost:8765"
+      style="background:#0d1017; border:1px solid #2c354a; color:#f8fafc; padding:4px 10px;
+             border-radius:4px; font-size:13px; width:220px; outline:none;" />
+    <button id="connect-btn" onclick="connectBackend()"
+      style="background:#ea580c; color:#fff; border:none; padding:5px 14px; border-radius:4px;
+             cursor:pointer; font-weight:600; font-size:13px;">Connect</button>
+    <button id="disconnect-btn" onclick="disconnectBackend()" style="display:none;
+      background:transparent; color:#64748b; border:1px solid #2c354a; padding:4px 10px;
+      border-radius:4px; cursor:pointer; font-size:12px;">Disconnect</button>
+  </div>
+
   <!-- App Header -->
   <header>
     <div class="brand-section">
       <div class="brand-mark">
         <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
       </div>
-      <div class="brand-title">RustScan Industrial</div>
+      <div class="brand-title">Rusteze</div>
       <span class="brand-version">v1.2.0</span>
     </div>
     <div class="nav-status-group">
@@ -916,10 +933,10 @@
         <div class="card" id="vlm-box">
           <div class="card-header">
             <span class="card-title">Qualitative AI Verification</span>
-            <span class="meta-tag">Optional VLM</span>
+            <span class="meta-tag" id="vlm-tag">Optional VLM</span>
           </div>
           <div class="narrative-box" style="margin-top:0;" id="vlm-narrative">
-            Integrate with local LLMs (Ollama / Moondream) to corroborate surface pitting, paint blistering, and oxide color verification without cloud dependencies.
+            <span style="color:var(--text-tertiary)">AI Vision Standby:</span> Run <code style="color:var(--accent-primary); background:rgba(255,255,255,0.06); padding:2px 6px; border-radius:4px;">ollama pull moondream</code> to enable local AI corroboration.
           </div>
         </div>
 
@@ -963,19 +980,137 @@
 
   <!-- Status Bar Footer -->
   <footer>
-    <div>RustScan Industrial Architecture &bull; ISO 9001 / ASTM D610 Surface Quality Compliance</div>
+    <div>Rusteze Architecture &bull; ISO 9001 / ASTM D610 Surface Quality Compliance</div>
     <div class="mono">C++17 Core &bull; Zero External Runtime &bull; Real-Time Segmentation</div>
   </footer>
 
   <script>
+    // ─── API Backend Configuration ──────────────────────────────────────────────
+    const isLocalOrigin = location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+    let API_BASE = (() => {
+      const stored = localStorage.getItem('rusteze_api_base');
+      if (stored) return stored.replace(/\/$/, '');
+      return isLocalOrigin ? '' : null; // null = no backend configured
+    })();
+    let backendOnline = false;
+
+    async function connectBackend() {
+      const btn = document.getElementById('connect-btn');
+      const status = document.getElementById('banner-status');
+      const url = (document.getElementById('api-base-input').value || '').trim().replace(/\/$/, '');
+      if (!url) { status.innerHTML = '<span style="color:#ef4444;">⚠ Enter a URL first.</span>'; return; }
+
+      btn.textContent = 'Checking…';
+      btn.disabled = true;
+      status.innerHTML = '<span style="color:#f59e0b;">⏳ Connecting…</span>';
+
+      try {
+        const res = await fetch(`${url}/api/health`, { signal: AbortSignal.timeout(4000) });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        localStorage.setItem('rusteze_api_base', url);
+        API_BASE = url;
+        backendOnline = true;
+        status.innerHTML = '<span style="color:#10b981;">✓ Connected to ' + url + '</span>';
+        document.getElementById('disconnect-btn').style.display = 'inline-block';
+        btn.style.display = 'none';
+        document.getElementById('api-base-input').style.display = 'none';
+        // Re-enable specimens
+        document.querySelectorAll('.specimen-btn').forEach(b => b.disabled = false);
+      } catch (e) {
+        status.innerHTML = `<span style="color:#ef4444;">✗ Can't reach ${url} — is the server running?</span>`;
+        btn.textContent = 'Retry';
+        btn.disabled = false;
+      }
+    }
+
+    function disconnectBackend() {
+      localStorage.removeItem('rusteze_api_base');
+      location.reload();
+    }
+
+    function setApiBase(url) { // legacy compat
+      document.getElementById('api-base-input').value = url;
+      connectBackend();
+    }
+    // ────────────────────────────────────────────────────────────────────────────
+
+    // Init banner
+    (function() {
+      const banner = document.getElementById('api-banner');
+      const stored = localStorage.getItem('rusteze_api_base');
+      if (stored) {
+        document.getElementById('api-base-input').value = stored;
+        // Auto-verify stored address
+        connectBackend();
+      }
+      if (!isLocalOrigin) {
+        banner.style.display = 'flex';
+        document.body.style.paddingTop = '52px';
+      }
+    })();
+    // ────────────────────────────────────────────────────────────────────────────
+
     let activeBlob = null;
     let activeMode = 'split';
+    let currentSpecimen = null;
     let params = { texMin: 3.0, minArea: 30, hueHigh: 25 };
+
+    // Persistent storage for inspections (No external database needed - utilizes browser IndexedDB)
+    const DB_NAME = 'RustezeDB';
+    const DB_VERSION = 1;
+    const STORE_NAME = 'inspections';
+
+    function openDB() {
+      return new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, DB_VERSION);
+        req.onupgradeneeded = (e) => {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains(STORE_NAME)) {
+            db.createObjectStore(STORE_NAME);
+          }
+        };
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function savePersistentInspection(blob, data, mode, specimenName) {
+      try {
+        const db = await openDB();
+        const tx = db.transaction(STORE_NAME, 'readwrite');
+        const store = tx.objectStore(STORE_NAME);
+        store.put({
+          blob: blob,
+          data: data,
+          mode: mode,
+          specimenName: specimenName || null,
+          savedAt: Date.now()
+        }, 'last_inspection');
+      } catch (err) {
+        console.warn('Persistent storage write failed:', err);
+      }
+    }
+
+    async function loadPersistentInspection() {
+      try {
+        const db = await openDB();
+        const tx = db.transaction(STORE_NAME, 'readonly');
+        const store = tx.objectStore(STORE_NAME);
+        const req = store.get('last_inspection');
+        return new Promise((resolve) => {
+          req.onsuccess = () => resolve(req.result || null);
+          req.onerror = () => resolve(null);
+        });
+      } catch (err) {
+        console.warn('Persistent storage read failed:', err);
+        return null;
+      }
+    }
 
     // Drag and drop setup
     const dropZone = document.getElementById('drop-zone');
     dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.background = '#0d1017'; });
-    dropZone.addEventListener('dragleave', () => dropZone.style.background = '#06070a');
+    dropZone.addEventListener('dragleave', () => dropZone.style.background = '#06070a' );
     dropZone.addEventListener('drop', (e) => {
       e.preventDefault();
       dropZone.style.background = '#06070a';
@@ -988,19 +1123,26 @@
 
     function handleInspection(file) {
       activeBlob = file;
+      currentSpecimen = null;
       document.querySelectorAll('.specimen-btn').forEach(b => b.classList.remove('active'));
       executeAnalysis(file);
     }
 
     async function selectSpecimen(name) {
+      if (API_BASE === null) {
+        alert('⚠ No backend connected.\n\nPlease enter your local server address (e.g. http://localhost:8765) in the banner at the top and click Connect.');
+        return;
+      }
+      currentSpecimen = name;
       document.querySelectorAll('.specimen-btn').forEach(b => b.classList.remove('active'));
-      event.currentTarget.classList.add('active');
+      const activeBtn = document.querySelector(`.specimen-btn[onclick*="${name}"]`);
+      if (activeBtn) activeBtn.classList.add('active');
 
       document.getElementById('drop-cta').style.display = 'none';
       document.getElementById('loader').style.display = 'block';
 
       try {
-        const res = await fetch(`/api/sample/${name}`);
+        const res = await fetch(`${API_BASE}/api/sample/${name}`);
         if (!res.ok) throw new Error('Specimen fetch failed');
         const blob = await res.blob();
         activeBlob = blob;
@@ -1012,6 +1154,10 @@
     }
 
     async function executeAnalysis(blob) {
+      if (API_BASE === null) {
+        alert('⚠ No backend connected.\n\nPlease enter your local server address (e.g. http://localhost:8765) in the banner at the top and click Connect.');
+        return;
+      }
       document.getElementById('drop-cta').style.display = 'none';
       document.getElementById('loader').style.display = 'block';
 
@@ -1020,13 +1166,19 @@
       formData.append('texMin', params.texMin);
       formData.append('minArea', params.minArea);
       formData.append('hHigh', params.hueHigh);
+      formData.append('ollamaModel', 'moondream');
+
+      const vlmNarrative = document.getElementById('vlm-narrative');
+      if (vlmNarrative) {
+        vlmNarrative.innerHTML = '<span style="color:var(--accent-primary)">Running qualitative AI verification (Moondream)...</span>';
+      }
 
       const t0 = performance.now();
       try {
-        const resp = await fetch('/api/inspect', { method: 'POST', body: formData });
+        const resp = await fetch(`${API_BASE}/api/inspect`, { method: 'POST', body: formData });
         if (!resp.ok) throw new Error('Server error');
         const data = await resp.json();
-        renderAnalysis(data, performance.now() - t0);
+        renderAnalysis(data, performance.now() - t0, true);
       } catch (err) {
         console.error(err);
       } finally {
@@ -1034,7 +1186,7 @@
       }
     }
 
-    function renderAnalysis(data, rttMs) {
+    function renderAnalysis(data, rttMs, saveToStorage = true) {
       const a = data.assessment;
 
       document.getElementById('drop-cta').style.display = 'none';
@@ -1088,9 +1240,37 @@
       document.getElementById('detail-pattern').innerText = a.pattern || 'None';
       document.getElementById('narrative-text').innerText = a.summary || 'Surface analysis completed.';
 
-      // VLM
-      if (data.vlm && data.vlm.text) {
-        document.getElementById('vlm-narrative').innerText = data.vlm.text;
+      // VLM Handling
+      const vlmNarrative = document.getElementById('vlm-narrative');
+      const vlmTag = document.getElementById('vlm-tag');
+      if (data.vlm) {
+        if (data.vlm.text) {
+          if (vlmTag) vlmTag.innerText = 'Moondream Active';
+          const isRust = data.vlm.verdict === 'rust';
+          const indicatorColor = isRust ? 'var(--status-critical)' : 'var(--status-ok)';
+          vlmNarrative.innerHTML = `
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+              <span style="width:8px; height:8px; border-radius:50%; background:${indicatorColor}; display:inline-block;"></span>
+              <strong style="color:var(--text-primary); text-transform:uppercase; font-size:0.75rem; letter-spacing:0.04em;">VLM Verdict: ${data.vlm.verdict || 'Processed'}</strong>
+              <span class="mono" style="font-size:0.7rem; color:var(--text-tertiary);">(${data.vlm.latencyMs ? data.vlm.latencyMs.toFixed(0) : '--'} ms)</span>
+            </div>
+            <div style="color:var(--text-secondary); line-height:1.5;">${data.vlm.text}</div>
+          `;
+        } else if (data.vlm.error) {
+          if (vlmTag) vlmTag.innerText = 'VLM Standby';
+          vlmNarrative.innerHTML = `<span style="color:var(--text-tertiary)">AI Model Standby:</span> Local vision model 'moondream' not pulled.<br><span style="font-size:0.75rem; color:var(--text-secondary); margin-top:4px; display:inline-block;">Run <code style="color:var(--accent-primary); background:rgba(255,255,255,0.06); padding:2px 6px; border-radius:4px;">ollama pull moondream</code> to enable AI corroboration.</span>`;
+        } else if (data.vlm.message) {
+          if (vlmTag) vlmTag.innerText = 'Pure CV Mode';
+          vlmNarrative.innerHTML = `<span style="color:var(--text-tertiary)">AI Model Standby:</span> ${data.vlm.message}`;
+        }
+      } else {
+        if (vlmTag) vlmTag.innerText = 'Pure CV Mode';
+        vlmNarrative.innerHTML = `<span style="color:var(--text-tertiary)">AI Vision Standby:</span> Run <code style="color:var(--accent-primary); background:rgba(255,255,255,0.06); padding:2px 6px; border-radius:4px;">ollama pull moondream</code> to activate.`;
+      }
+
+      // Persist to IndexedDB
+      if (saveToStorage && activeBlob) {
+        savePersistentInspection(activeBlob, data, activeMode, currentSpecimen);
       }
     }
 
@@ -1098,7 +1278,8 @@
     function setMode(mode) {
       activeMode = mode;
       document.querySelectorAll('.mode-tab').forEach(t => t.classList.remove('active'));
-      event.currentTarget.classList.add('active');
+      const activeBtn = document.querySelector(`.mode-tab[onclick*="${mode}"]`);
+      if (activeBtn) activeBtn.classList.add('active');
 
       document.querySelectorAll('.view-frame').forEach(f => f.classList.remove('active'));
       const activeFrame = document.getElementById(`frame-${mode}`);
@@ -1140,6 +1321,24 @@
         if (activeBlob) executeAnalysis(activeBlob);
       }, 300);
     }
+
+    // Restore inspection on page load (Persistent picture & state)
+    window.addEventListener('DOMContentLoaded', async () => {
+      const saved = await loadPersistentInspection();
+      if (saved && saved.blob && saved.data) {
+        activeBlob = saved.blob;
+        currentSpecimen = saved.specimenName || null;
+        if (saved.mode) setMode(saved.mode);
+        if (saved.specimenName) {
+          const btn = document.querySelector(`.specimen-btn[onclick*="${saved.specimenName}"]`);
+          if (btn) btn.classList.add('active');
+        }
+        renderAnalysis(saved.data, saved.data.latencyMs || 20, false);
+      } else {
+        // Automatically analyze specimen 3 so the dashboard starts live with no blank placeholders
+        selectSpecimen('severe_flange');
+      }
+    });
   </script>
 </body>
 </html>
